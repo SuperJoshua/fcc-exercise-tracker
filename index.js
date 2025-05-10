@@ -20,15 +20,20 @@ app.get("/", (req, res) => {
 // I think I would have designed this project considerably differently.
 
 // The throwaway database. I'm just going to assume that the db stays ordered, since the index is tied to the _id.
+
+let db = []
+
+/*
 let db = [{"username":"bob","_id":0,"exercises":[]},
    {"username":"sally","_id":1,"exercises":[{"description":"jumping jacks","duration":"10","date":"Fri May 09 2025"}]},
    {"username":"fred","_id":2,"exercises":[{"description":"jogging","duration":"15","date":"Mon Oct 01 1990"},{"description":"running","duration":"10","date":"Tue Oct 02 1990"}]},
    {"username":"eddie","_id":3,"exercises":[{"description":"shooting","duration":"30","date":"Tue Jan 01 1980"},{"description":"fleeing","duration":"180","date":"Fri Jan 11 1980"},{"description":"hiding","duration":"240","date":"Tue Jan 15 1980"}]}
 ]
+*/
 
 // This takes a username and creates a new user. It always creates a new user. This was my experience with the FCC example, anyway. At least it allows for a hundred users named "bob".
 app.post("/api/users", (req, res) => {
-   const _id = db.length
+   const _id = String(db.length)
    const username = String(req.body.username)
    db.push({"username": username,
       "_id": _id,
@@ -53,17 +58,18 @@ app.post("/api/users/:_id/exercises", (req, res) => {
    const description = String(req.body.description)
    const duration = req.body.duration.match(/^\d+$/) ? Number(req.body.duration) : null
    if (!duration) {throw new Error("duration is not a number")}
+   console.log(`date given: ${req.body.date}`)
    const date = req.body.date.match(/^\d{4}-\d{2}-\d{2}$/) ? new Date(req.body.date).toDateString() : new Date().toDateString()
-   const username = db[_id].username
-   db[_id].exercises.push({"description": description,
+   const user = db[_id]
+   user.exercises.push({"description": description,
       "duration": duration,
       "date": date
    })
-   res.json({"username": username,
+   res.json({"username": user.username,
       "description": description,
       "duration": duration,
       "date": date,
-      "_id": _id
+      "_id": user._id
    })
 })
 
