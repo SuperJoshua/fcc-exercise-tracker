@@ -20,7 +20,7 @@ app.get("/", (req, res) => {
 // I think I would have designed this project considerably differently.
 
 // The throwaway database. I'm just going to assume that the db stays ordered, since the index is tied to the _id.
-const db = [{"username":"bob","_id":0,"exercises":[]},
+let db = [{"username":"bob","_id":0,"exercises":[]},
    {"username":"sally","_id":1,"exercises":[{"description":"jumping jacks","duration":"10","date":"Fri May 09 2025"}]},
    {"username":"fred","_id":2,"exercises":[{"description":"jogging","duration":"15","date":"Mon Oct 01 1990"},{"description":"running","duration":"10","date":"Tue Oct 02 1990"}]},
    {"username":"eddie","_id":3,"exercises":[{"description":"shooting","duration":"30","date":"Tue Jan 01 1980"},{"description":"fleeing","duration":"180","date":"Fri Jan 11 1980"},{"description":"hiding","duration":"240","date":"Tue Jan 15 1980"}]}
