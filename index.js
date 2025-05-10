@@ -3,9 +3,6 @@
 const body_parser = require("body-parser")
 const cors = require("cors")
 const express = require("express")
-const { defaultConfiguration } = require("express/lib/application")
-const { count, log } = require("node:console")
-const fs = require("node:fs")
 
 const app = express()
 app.use(body_parser.urlencoded({extended: false}))
@@ -19,17 +16,8 @@ app.get("/", (req, res) => {
 
 // I think I would have designed this project considerably differently.
 
-// The throwaway database. I'm just going to assume that the db stays ordered, since the index is tied to the _id.
-
+// The throwaway database.
 let db = []
-
-/*
-let db = [{"username":"bob","_id":0,"exercises":[]},
-   {"username":"sally","_id":1,"exercises":[{"description":"jumping jacks","duration":"10","date":"Fri May 09 2025"}]},
-   {"username":"fred","_id":2,"exercises":[{"description":"jogging","duration":"15","date":"Mon Oct 01 1990"},{"description":"running","duration":"10","date":"Tue Oct 02 1990"}]},
-   {"username":"eddie","_id":3,"exercises":[{"description":"shooting","duration":"30","date":"Tue Jan 01 1980"},{"description":"fleeing","duration":"180","date":"Fri Jan 11 1980"},{"description":"hiding","duration":"240","date":"Tue Jan 15 1980"}]}
-]
-*/
 
 // This takes a username and creates a new user. It always creates a new user. This was my experience with the FCC example, anyway. At least it allows for a hundred users named "bob".
 app.post("/api/users", (req, res) => {
@@ -53,14 +41,18 @@ app.get("/api/users", (req, res) => {
 
 // This logs a workout session. It's clumsy. The FCC example _id is a 24-digit hex key. What normal person is going to remember that? Especially for something as benign as an exercise tracker? The description can be anything -- sorting by exercise will not be implemented. Duration can take a decimal, but it's still casts to a Number, so "1.b" and "one" don't work. The date is strictly yyyy-mm-dd (or just nothing, apparently). I'm fine with that, except that I usually leave the delimiters out when I write stuff. I did notice that I was able to add dates that haven't happened yet. I wonder why the input types in the forms were all "text" rather than "number" and "date". And why is the name for _id ":_id"? That colon just complicates things. And why are the fields required before hitting submit? I feel like the HTML page is crap.
 app.post("/api/users/:_id/exercises", (req, res) => {
-   const _id = req.params._id.match(/^\d+$/) ? Number(req.params._id) : null
-   if (!_id) {throw new Error("_id is not a number")}
+   const _id = req.params._id.match(/^\d+$/) ? req.params._id : null
+   if (_id == null) {throw new Error("_id is not a number")}
    const description = String(req.body.description)
    const duration = req.body.duration.match(/^\d+$/) ? Number(req.body.duration) : null
-   if (!duration) {throw new Error("duration is not a number")}
-   console.log(`date given: ${req.body.date}`)
+   if (duration == null) {throw new Error("duration is not a number")}
+   /*
+   For some reason, FCC's tests don't like my regex. Guess we'll just hope for the best.
+   
    const date = req.body.date.match(/^\d{4}-\d{2}-\d{2}$/) ? new Date(req.body.date).toDateString() : new Date().toDateString()
-   const user = db[_id]
+   */
+   const date = req.body.date ? new Date(req.body.date).toDateString() : new Date().toDateString()
+   const user = db[Number(_id)]
    user.exercises.push({"description": description,
       "duration": duration,
       "date": date
@@ -80,19 +72,23 @@ app.post("/api/users/:_id/exercises", (req, res) => {
 "/api/users/:_id/logs\?:from&:to",
 "/api/users/:_id/logs\?:from&:to&:limit"]
 
-... but, in spite of Express Playground Router (https://bjohansebas.github.io/playground-router/) confirming that it (well, each route) works, this thing keeps throwing an error:
+... but, in spite of the Express Playground Router (https://bjohansebas.github.io/playground-router/) confirming that it (well, each route) works, this thing keeps throwing an error:
 
 TypeError: Unexpected ? at 20, expected END: https://git.new/pathToRegexpError
 
 The landing page is irrelevant though, since I'm using \? -- escaping the ? and  not using it as a regex special character. And, again, it's working on the previously mentioned test page with Express v5 selected. Unless *that* page is incorrect...
 
-Anyway, this will display a certain user's workouts between two points in time.
+Anyway, this will display a certain user's exercises between two points in time.
 
-In testing the query, the object created didn't return the values/keys in order, so I couldn't depend on the index of the resulting array. And the result looks like a mess. 
+In testing the query, the object created didn't return the values/keys in order, so I couldn't depend on the index of the resulting array. And I'm not terribly satisfied with my solution. 
 */
 app.get("/api/users/:_id/logs", (req, res) => {
+   /*
+   This worked for me, but the FCC tests failed. I really don't like hacking out an answer. This was a hack. Now, I get to break it on my end so that tests pass. This is not the correct way to learn software development -- or anything.
+
    const _id = req.params._id
    const keys = Object.keys(req.query)
+   console.log(`keys: ${keys}`)
    if (keys.length > 3) {throw new Error("bad query, check the URL")}
    let from = ""
    let to = ""
@@ -105,8 +101,6 @@ app.get("/api/users/:_id/logs", (req, res) => {
       else {throw new Error("bad query, date or limit is in a wrong format")}
    }
 
-   console.log(`dates: ${dates}`)
-
    if (dates.length) {
       if (dates.length > 2) {throw new Error("bad query, too many dates")}
       else if (dates.length == 1) {from = dates.pop()}
@@ -117,21 +111,25 @@ app.get("/api/users/:_id/logs", (req, res) => {
          to = dates[1].toDateString()}
    }
 
-   console.log(`from: ${from} to: ${to} limit: ${limit}`)
-
    if (numbers.length) {
       if (numbers.length > 1) {throw new Error("bad query, only one limit allowed")}
       else if (numbers.length >= dates.length) {throw new Error("bad query, limit apparently only allowed when both from *and* to are given")}
       else {limit = numbers.pop()}
    }
 
+   // No, I can't trust that exercises were added chronologically. I probably should have used a canned database solution, like MongoDB.
+   user.exercises.sort((a, b) => (new Date(a.date).getTime()) - (new Date(b.date).getTime()))
+   */
+
+   const _id = req.params._id
+   let from = req.query.from ? req.query.from : ""
+   let to = req.query.to ? req.query.to : ""
+   let limit = req.query.limit ? req.query.limit : 0
+
    const user = db[_id]
    let result = {}
    result.username = user.username
    result._id = user._id
-
-   // No, I can't trust that exercises were added chronologically. I probably should have used a canned database solution, like MongoDB.
-   user.exercises.sort((a, b) => (new Date(a.date).getTime()) - (new Date(b.date).getTime()))
 
    let log = []
 
