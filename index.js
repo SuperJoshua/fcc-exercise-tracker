@@ -3,6 +3,7 @@
 const body_parser = require("body-parser")
 const cors = require("cors")
 const express = require("express")
+const { defaultConfiguration } = require("express/lib/application")
 const { count, log } = require("node:console")
 const fs = require("node:fs")
 
@@ -15,6 +16,8 @@ app.get("/", (req, res) => {
 })
 
 // solution
+
+// I think I would have designed this project considerably differently.
 
 // The throwaway database. I'm just going to assume that the db stays ordered, since the index is tied to the _id.
 const db = [{"username":"bob","_id":0,"exercises":[]},
@@ -91,23 +94,30 @@ app.get("/api/users/:_id/logs", (req, res) => {
    let dates = []
    let numbers = []
    for (const el of keys) {
-      if (el.match(/^d+$/)) {numbers.push(Number(el))}
+      if (el.match(/^\d+$/)) {numbers.push(Number(el))}
       else if (el.match(/^\d{4}-\d{2}-\d{2}$/)) {dates.push(new Date(el))}
       else {throw new Error("bad query, date or limit is in a wrong format")}
    }
-   if (dates) {console.log(dates)}
-   if (dates.length > 2) {throw new Error("bad query, too many dates")}
-   else if (dates.length == 1) {from = dates.pop()}
-   else if (dates.length) {
-      // If the user entered these backwards, they're being forcefully sorted. 
-      dates.sort((a, b) => a.getTime - b.getTime)
-      from = dates.pop().toDateString()
-      to = dates.pop().toDateString()
+
+   console.log(`dates: ${dates}`)
+
+   if (dates.length) {
+      if (dates.length > 2) {throw new Error("bad query, too many dates")}
+      else if (dates.length == 1) {from = dates.pop()}
+      else {
+         // If the user entered these backwards, they're being forcefully sorted. 
+         dates.sort((a, b) => a.getTime() - b.getTime())
+         from = dates[0].toDateString()
+         to = dates[1].toDateString()}
    }
 
-   if (numbers.length > 1) {throw new Error("bad query, only one limit allowed")}
-   else if (numbers.lenght >= dates.length) {throw new Error("bad query, limit apparently only allowed when both from *and* to are given")}
-   else if (numbers.length) {limit = numbers.pop()}
+   console.log(`from: ${from} to: ${to} limit: ${limit}`)
+
+   if (numbers.length) {
+      if (numbers.length > 1) {throw new Error("bad query, only one limit allowed")}
+      else if (numbers.length >= dates.length) {throw new Error("bad query, limit apparently only allowed when both from *and* to are given")}
+      else {limit = numbers.pop()}
+   }
 
    const user = db[_id]
    let result = {}
@@ -115,7 +125,7 @@ app.get("/api/users/:_id/logs", (req, res) => {
    result._id = user._id
 
    // No, I can't trust that exercises were added chronologically. I probably should have used a canned database solution, like MongoDB.
-   user.exercises.sort((a, b) => (new Date(a.date).getTime) - (new Date(b.date).getTime))
+   user.exercises.sort((a, b) => (new Date(a.date).getTime()) - (new Date(b.date).getTime()))
 
    let log = []
 
