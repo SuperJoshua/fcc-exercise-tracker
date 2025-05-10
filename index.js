@@ -48,7 +48,7 @@ app.get("/api/users", (req, res) => {
 
 // This logs a workout session. It's clumsy. The FCC example _id is a 24-digit hex key. What normal person is going to remember that? Especially for something as benign as an exercise tracker? The description can be anything -- sorting by exercise will not be implemented. Duration can take a decimal, but it's still casts to a Number, so "1.b" and "one" don't work. The date is strictly yyyy-mm-dd (or just nothing, apparently). I'm fine with that, except that I usually leave the delimiters out when I write stuff. I did notice that I was able to add dates that haven't happened yet. I wonder why the input types in the forms were all "text" rather than "number" and "date". And why is the name for _id ":_id"? That colon just complicates things. And why are the fields required before hitting submit? I feel like the HTML page is crap.
 app.post("/api/users/:_id/exercises", (req, res) => {
-   const _id = req.body[":_id"].match(/^\d+$/) ? Number(req.body[":_id"]) : null
+   const _id = req.params._id.match(/^\d+$/) ? Number(req.params._id) : null
    if (!_id) {throw new Error("_id is not a number")}
    const description = String(req.body.description)
    const duration = req.body.duration.match(/^\d+$/) ? Number(req.body.duration) : null
